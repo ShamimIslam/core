@@ -25,9 +25,8 @@ class NaturalSort {
 		$x = 0;
 		$y = -1;
 		$n = null;
-		$length = strlen($t);
 
-		while ($x < $length) {
+		while (isset($t[$x])) {
 			$c = $t[$x];
 			// only include the dot in strings
 			$m = ((!$n && $c === '.') || ($c >= '0' && $c <= '9'));
@@ -75,10 +74,8 @@ class NaturalSort {
 		// instead of ["test.txt", "test (2).txt"]
 		$aa = self::naturalSortChunkify($a);
 		$bb = self::naturalSortChunkify($b);
-		$alen = count($aa);
-		$blen = count($bb);
 
-		for ($x = 0; $x < $alen && $x < $blen; $x++) {
+		for ($x = 0; isset($aa[$x]) && isset($bb[$x]); $x++) {
 			$aChunk = $aa[$x];
 			$bChunk = $bb[$x];
 			if ($aChunk !== $bChunk) {
@@ -90,7 +87,7 @@ class NaturalSort {
 				return self::getCollator()->compare($aChunk, $bChunk);
 			}
 		}
-		return $alen - $blen;
+		return count($aa) - count($bb);
 	}
 
 	/**
