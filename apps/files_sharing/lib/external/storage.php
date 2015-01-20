@@ -143,26 +143,38 @@ class Storage extends DAV implements ISharedStorage {
 		try {
 			return parent::hasUpdated('', $time);
 		} catch (StorageNotAvailableException $e) {
-			// see if we can find out why the share is unavailable\
-			try {
-				$this->getShareInfo();
-			} catch (NotFoundException $shareException) {
-				// a 404 can either mean that the share no longer exists or there is no ownCloud on the remote
-				if ($this->testRemote()) {
-					// valid ownCloud instance means that the public share no longer exists
-					// since this is permanent (re-sharing the file will create a new token)
-					// we remove the invalid storage
-					$this->manager->removeShare($this->mountPoint);
-					$this->manager->getMountManager()->removeMount($this->mountPoint);
-					throw new StorageInvalidException();
-				} else {
-					// ownCloud instance is gone, likely to be a temporary server configuration error
-					throw $e;
-				}
-			} catch (\Exception $shareException) {
-				// todo, maybe handle 403 better and ask the user for a new password
+			// check if it needs to be removed or jump temp unavailable
+			$this->checkStorageAvailability();
+			throw $e;
+		}
+	}
+
+	/**
+	 * Check whether this storage is permanently or temporarily
+	 * unavailable
+	 *
+	 * @throws \OCP\Files\StorageNotAvailableException
+	 * @throws \OCP\Files\StorageInvalidException
+	 */
+	public function checkStorageAvailability() {
+		// see if we can find out why the share is unavailable
+		try {
+			$this->getShareInfo();
+		} catch (NotFoundException $shareException) {
+			// a 404 can either mean that the share no longer exists or there is no ownCloud on the remote
+			if ($this->testRemote()) {
+				// valid ownCloud instance means that the public share no longer exists
+				// since this is permanent (re-sharing the file will create a new token)
+				// we remove the invalid storage
+				$this->manager->removeShare($this->mountPoint);
+				$this->manager->getMountManager()->removeMount($this->mountPoint);
+				throw new StorageInvalidException();
+			} else {
+				// ownCloud instance is gone, likely to be a temporary server configuration error
 				throw $e;
 			}
+		} catch (\Exception $shareException) {
+			// todo, maybe handle 403 better and ask the user for a new password
 			throw $e;
 		}
 	}

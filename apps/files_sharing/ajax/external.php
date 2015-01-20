@@ -52,8 +52,14 @@ if (substr($remote, 0, 5) === 'https' and !OC_Util::getUrlContent($remote)) {
 	$storage = $mount->getStorage();
 	$result = $storage->file_exists('');
 	if ($result) {
-		$storage->getScanner()->scanAll();
-		\OCP\JSON::success();
+		try {
+			$storage->getScanner()->scanAll();
+			\OCP\JSON::success();
+		} catch (\OCP\Files\StorageInvalidException $e) {
+			\OCP\JSON::error(array('data' => array('message' => $l->t("Storage not valid"))));
+		} catch (\Exception $e) {
+			\OCP\JSON::error(array('data' => array('message' => $l->t("Couldn't add remote share"))));
+		}
 	} else {
 		$externalManager->removeShare($mount->getMountPoint());
 		\OCP\JSON::error(array('data' => array('message' => $l->t("Couldn't add remote share"))));

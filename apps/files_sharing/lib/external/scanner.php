@@ -8,6 +8,11 @@
 
 namespace OCA\Files_Sharing\External;
 
+use OC\ForbiddenException;
+use OCP\Files\NotFoundException;
+use OCP\Files\StorageInvalidException;
+use OCP\Files\StorageNotAvailableException;
+
 class Scanner extends \OC\Files\Cache\Scanner {
 	/**
 	 * @var \OCA\Files_Sharing\External\Storage
@@ -18,8 +23,32 @@ class Scanner extends \OC\Files\Cache\Scanner {
 		$this->scanAll();
 	}
 
+	public function scanFile($path, $reuseExisting = 0) {
+		try {
+			return parent::scanFile($path, $reuseExisting);
+		} catch (\Sabre\DAV\Exception $e) {
+			$this->storage->checkStorageAvailability();
+		} catch (ForbiddenException $e) {
+			$this->storage->checkStorageAvailability();
+		} catch (NotFoundException $e) {
+			// if the storage isn't found, the call to
+			// checkStorageAvailable() will verify it and remove it
+			// if appropriate
+			$this->storage->checkStorageAvailability();
+		} catch (StorageInvalidException $e) {
+			$this->storage->checkStorageAvailability();
+		} catch (StorageNotAvailable $e) {
+			$this->storage->checkStorageAvailability();
+		}
+	}
+
 	public function scanAll() {
-		$data = $this->storage->getShareInfo();
+		try {
+			$data = $this->storage->getShareInfo();
+		} catch (\Exception $e) {
+			$this->storage->checkStorageAvailability();
+			throw new \Exception('Error while scanning remote share: ' . $e->getMessage());
+		}
 		if ($data['status'] === 'success') {
 			$this->addResult($data['data'], '');
 		} else {
